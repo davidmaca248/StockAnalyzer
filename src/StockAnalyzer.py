@@ -2,11 +2,14 @@ from bs4 import BeautifulSoup
 import requests
 
 class StockAnalyzer:
-    def __init__(self,tckr) -> None:
+    def __new__(self,tckr):
         try:
             htmlText = requests.get('https://www.macroaxis.com/invest/ratio/'+tckr).text
             soup = BeautifulSoup(htmlText, 'lxml')
-
+        except:
+            print('invalid ticker')
+            return self,False
+        try:
             # Ticker
             self.ticker = tckr
 
@@ -27,7 +30,7 @@ class StockAnalyzer:
                     self.mktCapStr = i.findAll('td')[2].text
 
                 # Valuation
-                if(t != None and "Current Valuation" in t):
+                elif(t != None and "Current Valuation" in t):
                     self.valuationStr = i.findAll('td')[2].text
 
                 # Outstanding Shares
@@ -35,6 +38,7 @@ class StockAnalyzer:
                     self.sharesStr = i.findAll('td')[2].text
                     num,letter = self.sharesStr.split()
 
+                    num = float(num)
                     if letter == 'B':
                         self.sharesFloat = int(num *  1000000000)
                     elif letter == 'M':
@@ -49,13 +53,18 @@ class StockAnalyzer:
 
                     num,letter = self.netIncomeStr.split()
 
+                    num = float(num)
                     if letter == 'B':
-                        self.netIncomeFloat = int(float(num) *  1000000000)
+                        self.netIncomeFloat = int(num *  1000000000)
+                    elif letter == 'M':
+                        self.netIncomeFloat = int(num *  1000000)
+                    else:
+                        self.netIncomeFloat = int(num)
 
                 # Revenue
                 elif(t != None and "Revenue" in t):
                     self.revenueStr = i.findAll('td')[2].text
-
+                    
             #eps (basic)
             self.eps = self.netIncomeFloat/self.sharesFloat
 
@@ -66,10 +75,12 @@ class StockAnalyzer:
             self.idealPrice = self.price/(self.peRatio/14)
 
             #self.printValues()
+            return self,True
         except:
             print('Exception encountered initializing StockAnalyzer')
+            #raise Exception("Initialization Exception")
+            return self,False
     
-
     def printValues(self):
         print(f'Ticker: {self.ticker}')
         print(f'Name: {self.name}')
